@@ -3,7 +3,7 @@ using MassTransit;
 using System;
 using System.Threading.Tasks;
 
-namespace Genocs.MassTransit.Components.CourierActivities
+namespace Genocs.MassTransit.Issuer.Components.CourierActivities
 {
     public class AllocateInventoryActivity :
             IActivity<AllocateInventoryArguments, AllocateInventoryLog>

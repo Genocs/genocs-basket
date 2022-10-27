@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Genocs.MassTransit.Components.CourierActivities
+namespace Genocs.MassTransit.Issuer.Components.CourierActivities
 {
     public interface DeliveryOrderArguments
     {

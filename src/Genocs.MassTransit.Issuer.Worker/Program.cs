@@ -1,8 +1,8 @@
 using Genocs.MassTransit.Components.Consumers;
-using Genocs.MassTransit.Components.CourierActivities;
 using Genocs.MassTransit.Components.HttpClients;
 using Genocs.MassTransit.Components.StateMachines;
 using Genocs.MassTransit.Components.StateMachines.Activities;
+using Genocs.MassTransit.Issuer.Components.CourierActivities;
 using Genocs.MassTransit.Issuer.Worker;
 using Genocs.MassTransit.Warehouse.Contracts;
 using MassTransit;

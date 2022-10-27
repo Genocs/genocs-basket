@@ -9,7 +9,7 @@
     }
   },
   "profiles": {
-    "Genocs.MassTransit.WebApi": {
+    "Genocs.MassTransit.Issuer.WebApi": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "swagger",

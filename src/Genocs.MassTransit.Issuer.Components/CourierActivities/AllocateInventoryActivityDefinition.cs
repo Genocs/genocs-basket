@@ -1,6 +1,6 @@
 ﻿using MassTransit;
 
-namespace Genocs.MassTransit.Components.CourierActivities
+namespace Genocs.MassTransit.Issuer.Components.CourierActivities
 {
     public class AllocateInventoryActivityDefinition :
         ActivityDefinition<AllocateInventoryActivity, AllocateInventoryArguments, AllocateInventoryLog>

@@ -1,6 +1,6 @@
 ﻿using MassTransit;
 
-namespace Genocs.MassTransit.Components.CourierActivities
+namespace Genocs.MassTransit.Issuer.Components.CourierActivities
 {
     public class DeliveryOrderActivityDefinition :
         ActivityDefinition<DeliveryOrderActivity, DeliveryOrderArguments, DeliveryOrderLog>
