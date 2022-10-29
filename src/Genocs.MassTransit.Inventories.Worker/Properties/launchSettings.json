@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "Genocs.MassTransit.Warehouse.Worker": {
+    "Genocs.MassTransit.Inventories.Worker": {
       "commandName": "Project",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"

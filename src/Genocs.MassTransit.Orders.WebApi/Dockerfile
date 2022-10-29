@@ -7,16 +7,16 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
-COPY ["Genocs.MassTransit.WebApi/Genocs.MassTransit.WebApi.csproj", "Genocs.MassTransit.WebApi/"]
-RUN dotnet restore "Genocs.MassTransit.WebApi/Genocs.MassTransit.WebApi.csproj"
+COPY ["Genocs.MassTransit.Orders.WebApi/Genocs.MassTransit.Orders.WebApi.csproj", "Genocs.MassTransit.Orders.WebApi/"]
+RUN dotnet restore "Genocs.MassTransit.Orders.WebApi/Genocs.MassTransit.Orders.WebApi.csproj"
 COPY . .
-WORKDIR "/src/Genocs.MassTransit.WebApi"
-RUN dotnet build "Genocs.MassTransit.WebApi.csproj" -c Release -o /app/build
+WORKDIR "/src/Genocs.MassTransit.Orders.WebApi"
+RUN dotnet build "Genocs.MassTransit.Orders.WebApi.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "Genocs.MassTransit.WebApi.csproj" -c Release -o /app/publish
+RUN dotnet publish "Genocs.MassTransit.Orders.WebApi.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Genocs.MassTransit.WebApi.dll"]
+ENTRYPOINT ["dotnet", "Genocs.MassTransit.Orders.WebApi.dll"]

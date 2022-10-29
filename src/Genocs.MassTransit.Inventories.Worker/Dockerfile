@@ -5,16 +5,16 @@ WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
-COPY ["Genocs.MassTransit.Warehouse.Worker/Genocs.MassTransit.Warehouse.Worker.csproj", "Genocs.MassTransit.Warehouse.Worker/"]
-RUN dotnet restore "Genocs.MassTransit.Warehouse.Worker/Genocs.MassTransit.Warehouse.Worker.csproj"
+COPY ["Genocs.MassTransit.Inventories.Worker/Genocs.MassTransit.Inventories.Worker.csproj", "Genocs.MassTransit.Inventories.Worker/"]
+RUN dotnet restore "Genocs.MassTransit.Inventories.Worker/Genocs.MassTransit.Inventories.Worker.csproj"
 COPY . .
-WORKDIR "/src/Genocs.MassTransit.Warehouse.Worker"
-RUN dotnet build "Genocs.MassTransit.Warehouse.Worker.csproj" -c Release -o /app/build
+WORKDIR "/src/Genocs.MassTransit.Inventories.Worker"
+RUN dotnet build "Genocs.MassTransit.Inventories.Worker.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "Genocs.MassTransit.Warehouse.Worker.csproj" -c Release -o /app/publish
+RUN dotnet publish "Genocs.MassTransit.Inventories.Worker.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Genocs.MassTransit.Warehouse.Worker.dll"]
+ENTRYPOINT ["dotnet", "Genocs.MassTransit.Inventories.Worker.dll"]

@@ -5,16 +5,16 @@ WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
-COPY ["Genocs.MassTransit.Integrations.Service/Genocs.MassTransit.Integrations.Service.csproj", "Genocs.MassTransit.Integrations.Service/"]
-RUN dotnet restore "Genocs.MassTransit.Integrations.Service/Genocs.MassTransit.Integrations.Service.csproj"
+COPY ["Genocs.MassTransit.Integrations.Worker/Genocs.MassTransit.Integrations.Worker.csproj", "Genocs.MassTransit.Integrations.Worker/"]
+RUN dotnet restore "Genocs.MassTransit.Integrations.Worker/Genocs.MassTransit.Integrations.Worker.csproj"
 COPY . .
-WORKDIR "/src/Genocs.MassTransit.Integrations.Service"
-RUN dotnet build "Genocs.MassTransit.Integrations.Service.csproj" -c Release -o /app/build
+WORKDIR "/src/Genocs.MassTransit.Integrations.Worker"
+RUN dotnet build "Genocs.MassTransit.Integrations.Worker.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "Genocs.MassTransit.Integrations.Service.csproj" -c Release -o /app/publish
+RUN dotnet publish "Genocs.MassTransit.Integrations.Worker.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Genocs.MassTransit.Integrations.Service.dll"]
+ENTRYPOINT ["dotnet", "Genocs.MassTransit.Integrations.Worker.dll"]

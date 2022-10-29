@@ -17,7 +17,8 @@ Log.Logger = new LoggerConfiguration()
 Microsoft.Extensions.Hosting.IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((hostContext, services) =>
     {
-        TelemetryAndLogging.Initialize("InstrumentationKey=f28b8a8c-bf65-44a6-9976-e56613fef466;IngestionEndpoint=https://westeurope-5.in.applicationinsights.azure.com/;LiveEndpoint=https://westeurope.livediagnostics.monitor.azure.com/");
+        var connectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+        TelemetryAndLogging.Initialize(connectionString);
 
         services.TryAddSingleton(KebabCaseEndpointNameFormatter.Instance);
         services.AddMassTransit(cfg =>
@@ -27,6 +28,7 @@ Microsoft.Extensions.Hosting.IHost host = Host.CreateDefaultBuilder(args)
 
             cfg.AddPublishMessageScheduler();
 
+            // Used to handle delayed messages using rabbitMQ capability
             cfg.AddDelayedMessageScheduler();
 
             // Routing slip configuration
@@ -36,7 +38,7 @@ Microsoft.Extensions.Hosting.IHost host = Host.CreateDefaultBuilder(args)
                 //.RedisRepository(); // Redis as Saga persistence
                 .MongoDbRepository(r =>
                 {
-                    r.Connection = "mongodb://127.0.0.1";
+                    r.Connection = hostContext.Configuration.GetConnectionString(Constants.MongoDbConnectionString);
                     r.DatabaseName = "allocation";
                 });
 

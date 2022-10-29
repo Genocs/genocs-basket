@@ -5,7 +5,7 @@ using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Extensions.Logging.ApplicationInsights;
 using Microsoft.Extensions.Options;
 
-namespace Genocs.MassTransit.Inventories.Worker;
+namespace Genocs.MassTransit.Orders.WebApi;
 
 internal static class TelemetryAndLogging
 {
