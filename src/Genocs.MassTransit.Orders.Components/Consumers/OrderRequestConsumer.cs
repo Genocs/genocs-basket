@@ -24,7 +24,7 @@ namespace Genocs.MassTransit.Orders.Components.Consumers
 
         public async Task Consume(ConsumeContext<OrderRequest> context)
         {
-            _logger?.Log(LogLevel.Debug, "SubmitOrderConsumer: {CustomerNumber}", context.Message.CustomerNumber);
+            _logger?.Log(LogLevel.Debug, "OrderRequestConsumer: {CustomerNumber}", context.Message.CustomerNumber);
 
             // Customer Validation
             var customer = await customerClient.GetCustomer(context.Message.CustomerNumber);

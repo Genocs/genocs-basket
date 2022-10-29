@@ -61,7 +61,7 @@ public class OrderController : ControllerBase
         // The message is sent to the queue, it is possible to send the message to a rabbit exchange as well
         // As well ase you can use a service to creat the URI based on the contract namespace
         // {KebabCaseEndpointNameFormatter.Instance.Consumer<SubmitOrderConsumer>()}
-        var endpoint = await _sendEndpointProvider.GetSendEndpoint(new Uri($"exchange:Genocs.MassTransit.Contracts:OrderRequest"));
+        var endpoint = await _sendEndpointProvider.GetSendEndpoint(new Uri($"exchange:Genocs.MassTransit.Orders.Contracts:OrderRequest"));
 
         await endpoint.Send<OrderRequest>(new
         {

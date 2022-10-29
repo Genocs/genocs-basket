@@ -1,0 +1,24 @@
+###############################################################################
+# Use this file inside Visual Studio code with 'REST Client' plugin 
+# https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+###############################################################################
+
+@ordersWebApi = https://localhost:7212
+@customersWebApi = https://localhost:7115
+
+@inventoriesWebApi = https://localhost:4200
+
+
+### Post a new Order
+POST {{ordersWebApi}}/Order?orderId={{$guid}}&customerNumber=1346&shippingAddress=New York City, Street XYZ&paymentCardNumber=40000000000001
+Content-Type: application/json
+
+{
+  "CustomerNumber": {{$guid}},
+  "shippingAddress": "New York City, Street XYZ",
+  "paymentCardNumber" : "40000000000001"
+}
+
+### Get Order status
+GET {{ordersWebApi}}/Order?orderId=48f8cf21-c861-4b4d-bdfe-4342e1ea53bb
+Content-Type: application/json

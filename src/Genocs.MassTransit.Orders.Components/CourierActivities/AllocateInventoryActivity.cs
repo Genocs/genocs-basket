@@ -41,13 +41,14 @@ namespace Genocs.MassTransit.Orders.Components.CourierActivities
             //throw new System.InvalidOperationException("Simulate error");
 
             // Delay above the 8 sec will create a hold Expiration
-            await Task.Delay(7000);
+            await Task.Delay(6000);
 
             // Complete the allocation on the inventory
             await context.Publish<AllocationConfirmed>(new
             {
                 AllocationId = allocationId
             });
+
 
             // Everything went fine so can complete the request
             return context.Completed(new { AllocationId = allocationId });

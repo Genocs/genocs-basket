@@ -54,7 +54,7 @@ namespace Genocs.MassTransit.Inventories.Components.StateMachines
                     .Finalize(),
                 When(AllocationConfirmed)
                     .Unschedule(HoldExpiration)
-                    .Then(context => logger.LogInformation("Allocation Completd: {AllocationId}", context.Saga.CorrelationId))
+                    .Then(context => logger.LogInformation("Allocation Completed: {AllocationId}", context.Saga.CorrelationId))
                     .Finalize()
             );
 
