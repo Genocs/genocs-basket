@@ -15,6 +15,7 @@ using Serilog.Events;
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .MinimumLevel.Override("MassTransit", LogEventLevel.Debug)
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .CreateLogger();
