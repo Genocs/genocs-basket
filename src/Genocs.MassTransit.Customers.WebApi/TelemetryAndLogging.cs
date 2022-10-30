@@ -5,7 +5,7 @@ using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Extensions.Logging.ApplicationInsights;
 using Microsoft.Extensions.Options;
 
-namespace Genocs.MassTransit.Integrations.Worker;
+namespace Genocs.MassTransit.Customers.WebApi;
 
 internal static class TelemetryAndLogging
 {
@@ -15,6 +15,11 @@ internal static class TelemetryAndLogging
 
     public static void Initialize(string connectionString)
     {
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return;
+        }
+
         _module = new DependencyTrackingTelemetryModule();
 //        _module.IncludeDiagnosticSourceActivities.Add("MassTransit");
 
@@ -34,7 +39,7 @@ internal static class TelemetryAndLogging
         ILoggerFactory factory = new LoggerFactory();
         factory.AddProvider(applicationInsightsLoggerProvider);
 
-//        LogContext.ConfigureCurrentLogContext(factory);
+        //LogContext.ConfigureCurrentLogContext(factory);
     }
 
     public static async Task FlushAndCloseAsync()

@@ -5,6 +5,7 @@ WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
+COPY ["Genocs.MassTransit.Orders.Contracts/Genocs.MassTransit.Orders.Contracts.csproj", "Genocs.MassTransit.Orders.Contracts/"]
 COPY ["Genocs.MassTransit.Orders.Worker/Genocs.MassTransit.Orders.Worker.csproj", "Genocs.MassTransit.Orders.Worker/"]
 RUN dotnet restore "Genocs.MassTransit.Orders.Worker/Genocs.MassTransit.Orders.Worker.csproj"
 COPY . .

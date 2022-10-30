@@ -41,7 +41,7 @@ namespace Genocs.MassTransit.Orders.Components.CourierActivities
             //throw new System.InvalidOperationException("Simulate error");
 
             // Delay above the 8 sec will create a hold Expiration
-            await Task.Delay(6000);
+            await Task.Delay(7000);
 
             // Complete the allocation on the inventory
             await context.Publish<AllocationConfirmed>(new
@@ -56,6 +56,7 @@ namespace Genocs.MassTransit.Orders.Components.CourierActivities
 
         public async Task<CompensationResult> Compensate(CompensateContext<AllocateInventoryLog> context)
         {
+            // Notify to the Inventory to release the allocation
             await context.Publish<AllocationReleaseRequested>(new
             {
                 context.Log.AllocationId,

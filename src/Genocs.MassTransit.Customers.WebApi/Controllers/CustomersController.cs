@@ -29,6 +29,12 @@ namespace Genocs.MassTransit.Customers.WebApi.Controllers
         //    });
         //}
 
+
+        /// <summary>
+        /// Fake WebApi used to simulate WebApi call
+        /// </summary>
+        /// <param name="customerNumber"></param>
+        /// <returns></returns>
         [HttpGet(Name = "GetCustomer")]
         public async Task<IActionResult> GetCustomer([FromQuery] string customerNumber)
         {

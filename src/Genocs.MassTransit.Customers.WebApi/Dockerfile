@@ -8,6 +8,8 @@ EXPOSE 443
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
 COPY ["Genocs.MassTransit.Customers.WebApi/Genocs.MassTransit.Customers.WebApi.csproj", "Genocs.MassTransit.Customers.WebApi/"]
+COPY ["Genocs.MassTransit.Customers.Contracts/Genocs.MassTransit.Customers.Contracts.csproj", "Genocs.MassTransit.Customers.Contracts/"]
+
 RUN dotnet restore "Genocs.MassTransit.Customers.WebApi/Genocs.MassTransit.Customers.WebApi.csproj"
 COPY . .
 WORKDIR "/src/Genocs.MassTransit.Customers.WebApi"
