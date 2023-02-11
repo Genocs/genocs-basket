@@ -3,6 +3,7 @@ using Genocs.MassTransit.Inventories.Components.Consumers;
 using Genocs.MassTransit.Inventories.Components.StateMachines;
 using Genocs.MassTransit.Inventories.Worker;
 using MassTransit;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
@@ -10,18 +11,33 @@ using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 
-
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
+    .MinimumLevel.Debug()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .MinimumLevel.Override("MassTransit", LogEventLevel.Information)
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .CreateLogger();
 
+
 IHost host = Host.CreateDefaultBuilder(args)
+    .UseSerilog((ctx, lc) =>
+    {
+        lc.WriteTo.Console();
+
+        // Check for Azure ApplicationInsights 
+        string? applicationInsightsConnectionString = ctx.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+        if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
+        {
+            lc.WriteTo.ApplicationInsights(new TelemetryConfiguration
+            {
+                ConnectionString = applicationInsightsConnectionString
+            }, TelemetryConverter.Traces);
+        }
+    })
     .ConfigureServices((hostContext, services) =>
     {
-        //string connectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+        string applicationInsightsConnectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
         //TelemetryAndLogging.Initialize(connectionString);
 
         services.TryAddSingleton(KebabCaseEndpointNameFormatter.Instance);
@@ -54,17 +70,18 @@ IHost host = Host.CreateDefaultBuilder(args)
         // Set Custom Open telemetry
         services.AddOpenTelemetryTracing(builder =>
         {
-            builder.SetResourceBuilder(ResourceBuilder.CreateDefault()
+            TracerProviderBuilder provider = builder.SetResourceBuilder(ResourceBuilder.CreateDefault()
                     .AddService("InventoriesWorker")
                     .AddTelemetrySdk()
                     .AddEnvironmentVariableDetector())
-                .AddSource("*")
-                //.AddMongoDBInstrumentation()
-                .AddAzureMonitorTraceExporter(o =>
+                .AddSource("*");
+            //.AddMongoDBInstrumentation()
+            provider.AddAzureMonitorTraceExporter(o =>
                 {
-                    o.ConnectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
-                })
-                .AddJaegerExporter(o =>
+                    o.ConnectionString = applicationInsightsConnectionString;
+                });
+
+            provider.AddJaegerExporter(o =>
                 {
                     o.AgentHost = "localhost";
                     o.AgentPort = 6831;

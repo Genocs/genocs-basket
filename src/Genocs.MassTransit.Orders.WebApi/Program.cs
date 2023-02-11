@@ -1,7 +1,6 @@
 using Azure.Monitor.OpenTelemetry.Exporter;
 using Genocs.MassTransit.Orders.Contracts;
 using Genocs.MassTransit.Orders.WebApi;
-using Genocs.Monitoring;
 using MassTransit;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -26,10 +25,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((ctx, lc) =>
 {
     lc.WriteTo.Console();
-    lc.WriteTo.ApplicationInsights(new TelemetryConfiguration
+
+    // Check for Azure ApplicationInsights 
+    string? applicationInsightsConnectionString = ctx.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+    if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
     {
-        ConnectionString = builder.Configuration.GetConnectionString("ApplicationInsights")
-    }, TelemetryConverter.Traces);
+        lc.WriteTo.ApplicationInsights(new TelemetryConfiguration
+        {
+            ConnectionString = applicationInsightsConnectionString
+        }, TelemetryConverter.Traces);
+    }
 });
 
 // add services to DI container
@@ -37,7 +42,7 @@ var services = builder.Services;
 
 // ***********************************************
 // Azure Application Insight configuration - START
-services.AddCustomOpenTelemetry(builder.Configuration);
+//services.AddCustomOpenTelemetry(builder.Configuration);
 
 //services.ConfigureTelemetryModule<DependencyTrackingTelemetryModule>((module, o) =>
 //{
@@ -86,34 +91,36 @@ services.AddMassTransit(x =>
 
 });
 
+string applicationInsightsConnectionString = builder.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
 
-services.AddOpenTelemetryTracing(cfg =>
+// Set Custom Open telemetry
+services.AddOpenTelemetryTracing(builder =>
 {
-    cfg.SetResourceBuilder(ResourceBuilder.CreateDefault()
-                .AddService("OrdersWebApi")
-                .AddTelemetrySdk()
-                .AddEnvironmentVariableDetector())
-            .AddSource("*")
-            .AddAspNetCoreInstrumentation()
-            .AddMongoDBInstrumentation()
-            .AddJaegerExporter(o =>
-            {
-                o.AgentHost = "localhost";
-                o.AgentPort = 6831;
-                o.MaxPayloadSizeInBytes = 4096;
-                o.ExportProcessorType = ExportProcessorType.Batch;
-                o.BatchExportProcessorOptions = new BatchExportProcessorOptions<System.Diagnostics.Activity>
-                {
-                    MaxQueueSize = 2048,
-                    ScheduledDelayMilliseconds = 5000,
-                    ExporterTimeoutMilliseconds = 30000,
-                    MaxExportBatchSize = 512,
-                };
-            })
-            .AddAzureMonitorTraceExporter(o =>
-            {
-                o.ConnectionString = builder.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
-            });
+    TracerProviderBuilder provider = builder.SetResourceBuilder(ResourceBuilder.CreateDefault()
+            .AddService("OrdersWebApi")
+            .AddTelemetrySdk()
+            .AddEnvironmentVariableDetector())
+        .AddSource("*");
+    //.AddMongoDBInstrumentation()
+    provider.AddAzureMonitorTraceExporter(o =>
+    {
+        o.ConnectionString = applicationInsightsConnectionString;
+    });
+
+    provider.AddJaegerExporter(o =>
+    {
+        o.AgentHost = "localhost";
+        o.AgentPort = 6831;
+        o.MaxPayloadSizeInBytes = 4096;
+        o.ExportProcessorType = ExportProcessorType.Batch;
+        o.BatchExportProcessorOptions = new BatchExportProcessorOptions<System.Diagnostics.Activity>
+        {
+            MaxQueueSize = 2048,
+            ScheduledDelayMilliseconds = 5000,
+            ExporterTimeoutMilliseconds = 30000,
+            MaxExportBatchSize = 512,
+        };
+    });
 });
 
 
@@ -135,5 +142,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+//await TelemetryAndLogging.FlushAndCloseAsync();
 
 Log.CloseAndFlush();
