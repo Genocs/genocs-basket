@@ -1,6 +1,8 @@
 using Genocs.MassTransit.Orders.Contracts;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
+using OpenTelemetry;
+using System.Diagnostics;
 
 namespace Genocs.MassTransit.Orders.WebApi.Controllers;
 
@@ -55,6 +57,14 @@ public class OrderController : ControllerBase
     [HttpPost(Name = "")]
     public async Task<IActionResult> Post(Guid orderId, string customerNumber, string paymentCardNumber, string shippingAddress)
     {
+        _logger.LogCritical("Foolish Log!!!");
+        using var source = new ActivitySource("ExampleTracer");
+        // A span
+        using var activity = source.StartActivity("Placeholder to call Service B");
+
+        Baggage.Current.SetBaggage("ExampleItem", "The information");
+
+
         //Genocs.MassTransit.Contracts:OrderSubmitted
         //var interfaceType = typeof(OrderRequest);
 

@@ -1,3 +1,4 @@
+using Azure.Monitor.OpenTelemetry.Exporter;
 using Genocs.MassTransit.Inventories.Contracts;
 using Genocs.MassTransit.Orders.Components.Consumers;
 using Genocs.MassTransit.Orders.Components.CourierActivities;
@@ -7,26 +8,33 @@ using Genocs.MassTransit.Orders.Components.StateMachines.Activities;
 using Genocs.MassTransit.Orders.Worker;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using OpenTelemetry;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 
 
-
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Debug()
+    .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-    .MinimumLevel.Override("MassTransit", LogEventLevel.Information)
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .CreateLogger();
 
-
-Microsoft.Extensions.Hosting.IHost host = Host.CreateDefaultBuilder(args)
+IHost host = Host.CreateDefaultBuilder(args)
+    //.UseSerilog((ctx, lc) =>
+    //{
+    //    lc.WriteTo.Console();
+    //    lc.WriteTo.ApplicationInsights(new TelemetryConfiguration
+    //    {
+    //        ConnectionString = ctx.Configuration.GetConnectionString("ApplicationInsights")
+    //    }, TelemetryConverter.Traces);
+    //})
     .ConfigureServices((hostContext, services) =>
     {
-        var connectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
-        TelemetryAndLogging.Initialize(connectionString);
-
+        //string connectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+        //TelemetryAndLogging.Initialize(connectionString);
 
         // This is a state machine Activity
         services.AddScoped<OrderRequestedActivity>();
@@ -44,7 +52,7 @@ Microsoft.Extensions.Hosting.IHost host = Host.CreateDefaultBuilder(args)
 
             // Saga handling Order state
             cfg.AddSagaStateMachine<OrderStateMachine, OrderState>(typeof(OrderStateMachineDefinition))
-                .RedisRepository();
+                .RedisRepository(); // Redis as Saga persistence
 
             // Saga handling Payment state
             cfg.AddSagaStateMachine<PaymentStateStateMachine, PaymentState>(typeof(PaymentStateStateMachineDefinition))
@@ -63,6 +71,35 @@ Microsoft.Extensions.Hosting.IHost host = Host.CreateDefaultBuilder(args)
         // Add services to the container.
         services.AddHttpClient<CustomerClient>();
 
+        // Set Custom Open telemetry
+        services.AddOpenTelemetryTracing(builder =>
+        {
+            builder.SetResourceBuilder(ResourceBuilder.CreateDefault()
+                    .AddService("OrdersWorker")
+                    .AddTelemetrySdk()
+                    .AddEnvironmentVariableDetector())
+                .AddSource("*")
+                //.AddMongoDBInstrumentation()
+                .AddAzureMonitorTraceExporter(o =>
+                {
+                    o.ConnectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+                })
+                .AddJaegerExporter(o =>
+                {
+                    o.AgentHost = "localhost";
+                    o.AgentPort = 6831;
+                    o.MaxPayloadSizeInBytes = 4096;
+                    o.ExportProcessorType = ExportProcessorType.Batch;
+                    o.BatchExportProcessorOptions = new BatchExportProcessorOptions<System.Diagnostics.Activity>
+                    {
+                        MaxQueueSize = 2048,
+                        ScheduledDelayMilliseconds = 5000,
+                        ExporterTimeoutMilliseconds = 30000,
+                        MaxExportBatchSize = 512,
+                    };
+                });
+        });
+
     })
     .ConfigureLogging((hostingContext, logging) =>
     {
@@ -72,8 +109,7 @@ Microsoft.Extensions.Hosting.IHost host = Host.CreateDefaultBuilder(args)
     .Build();
 
 await host.RunAsync();
-
-await TelemetryAndLogging.FlushAndCloseAsync();
+//await TelemetryAndLogging.FlushAndCloseAsync();
 
 Log.CloseAndFlush();
 

@@ -15,6 +15,11 @@ internal static class TelemetryAndLogging
 
     public static void Initialize(string connectionString)
     {
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return;
+        }
+
         _module = new DependencyTrackingTelemetryModule();
         _module.IncludeDiagnosticSourceActivities.Add("MassTransit");
 

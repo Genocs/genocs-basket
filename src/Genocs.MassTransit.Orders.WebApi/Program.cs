@@ -1,10 +1,14 @@
+using Azure.Monitor.OpenTelemetry.Exporter;
 using Genocs.MassTransit.Orders.Contracts;
+using Genocs.MassTransit.Orders.WebApi;
+using Genocs.Monitoring;
 using MassTransit;
-using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.DependencyCollector;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using OpenTelemetry;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 
@@ -17,44 +21,51 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 
-TelemetryClient _telemetryClient;
-
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Host.UseSerilog((ctx, lc) => lc
-    .WriteTo.Console());
+builder.Host.UseSerilog((ctx, lc) =>
+{
+    lc.WriteTo.Console();
+    lc.WriteTo.ApplicationInsights(new TelemetryConfiguration
+    {
+        ConnectionString = builder.Configuration.GetConnectionString("ApplicationInsights")
+    }, TelemetryConverter.Traces);
+});
+
+// add services to DI container
+var services = builder.Services;
 
 // ***********************************************
 // Azure Application Insight configuration - START
-builder.Services.AddApplicationInsightsTelemetry();
+services.AddCustomOpenTelemetry(builder.Configuration);
 
-builder.Services.ConfigureTelemetryModule<DependencyTrackingTelemetryModule>((module, o) =>
-{
-    module.IncludeDiagnosticSourceActivities.Add("MassTransit");
-
-    var connectionString = builder.Configuration.GetConnectionString(Genocs.MassTransit.Orders.WebApi.Constants.ApplicationInsightsConnectionString);
-    TelemetryConfiguration configuration = TelemetryConfiguration.CreateDefault();
-    configuration.ConnectionString = connectionString;
-    configuration.TelemetryInitializers.Add(new HttpDependenciesParsingTelemetryInitializer());
-
-    _telemetryClient = new TelemetryClient(configuration);
-});
+//services.ConfigureTelemetryModule<DependencyTrackingTelemetryModule>((module, o) =>
+//{
+//    module.IncludeDiagnosticSourceActivities.Add("MassTransit");
+//    TelemetryConfiguration configuration = TelemetryConfiguration.CreateDefault();
+//    configuration.ConnectionString = builder.Configuration.GetConnectionString("ApplicationInsights");
+//    configuration.TelemetryInitializers.Add(new HttpDependenciesParsingTelemetryInitializer());
+//    _telemetryClient = new TelemetryClient(configuration);
+//});
 // Azure Application Insight configuration - END
 // ***********************************************
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
-builder.Services.Configure<HealthCheckPublisherOptions>(options =>
+
+services.AddControllers();
+
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+services.AddEndpointsApiExplorer();
+services.AddSwaggerGen();
+
+services.Configure<HealthCheckPublisherOptions>(options =>
 {
     options.Delay = TimeSpan.FromSeconds(2);
     options.Predicate = check => check.Tags.Contains("ready");
 });
 
-builder.Services.TryAddSingleton(KebabCaseEndpointNameFormatter.Instance);
-builder.Services.AddMassTransit(x =>
+services.TryAddSingleton(KebabCaseEndpointNameFormatter.Instance);
+services.AddMassTransit(x =>
 {
     x.UsingRabbitMq((context, cfg) =>
     {
@@ -74,6 +85,37 @@ builder.Services.AddMassTransit(x =>
     x.AddRequestClient<PaymentRequest>();
 
 });
+
+
+services.AddOpenTelemetryTracing(cfg =>
+{
+    cfg.SetResourceBuilder(ResourceBuilder.CreateDefault()
+                .AddService("OrdersWebApi")
+                .AddTelemetrySdk()
+                .AddEnvironmentVariableDetector())
+            .AddSource("*")
+            .AddAspNetCoreInstrumentation()
+            .AddMongoDBInstrumentation()
+            .AddJaegerExporter(o =>
+            {
+                o.AgentHost = "localhost";
+                o.AgentPort = 6831;
+                o.MaxPayloadSizeInBytes = 4096;
+                o.ExportProcessorType = ExportProcessorType.Batch;
+                o.BatchExportProcessorOptions = new BatchExportProcessorOptions<System.Diagnostics.Activity>
+                {
+                    MaxQueueSize = 2048,
+                    ScheduledDelayMilliseconds = 5000,
+                    ExporterTimeoutMilliseconds = 30000,
+                    MaxExportBatchSize = 512,
+                };
+            })
+            .AddAzureMonitorTraceExporter(o =>
+            {
+                o.ConnectionString = builder.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+            });
+});
+
 
 var app = builder.Build();
 

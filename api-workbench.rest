@@ -10,7 +10,7 @@
 
 
 ### Post a new Order
-POST {{ordersWebApi}}/Order?orderId={{$guid}}&customerNumber=1346&shippingAddress=New York City, Street XYZ&paymentCardNumber=40000000000001
+POST {{ordersWebApi}}/Order?orderId={{$guid}}&customerNumber=1346&shippingAddress=via New York City, Street XYZ&paymentCardNumber=40000000000001
 Content-Type: application/json
 
 {

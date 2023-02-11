@@ -1,8 +1,12 @@
-﻿using Genocs.MassTransit.Inventories.Components.Consumers;
+﻿using Azure.Monitor.OpenTelemetry.Exporter;
+using Genocs.MassTransit.Inventories.Components.Consumers;
 using Genocs.MassTransit.Inventories.Components.StateMachines;
 using Genocs.MassTransit.Inventories.Worker;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using OpenTelemetry;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 
@@ -14,11 +18,11 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateLogger();
 
-Microsoft.Extensions.Hosting.IHost host = Host.CreateDefaultBuilder(args)
+IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((hostContext, services) =>
     {
-        var connectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
-        TelemetryAndLogging.Initialize(connectionString);
+        //string connectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+        //TelemetryAndLogging.Initialize(connectionString);
 
         services.TryAddSingleton(KebabCaseEndpointNameFormatter.Instance);
         services.AddMassTransit(cfg =>
@@ -46,6 +50,36 @@ Microsoft.Extensions.Hosting.IHost host = Host.CreateDefaultBuilder(args)
         });
 
         services.AddHostedService<MassTransitConsoleHostedService>();
+
+        // Set Custom Open telemetry
+        services.AddOpenTelemetryTracing(builder =>
+        {
+            builder.SetResourceBuilder(ResourceBuilder.CreateDefault()
+                    .AddService("InventoriesWorker")
+                    .AddTelemetrySdk()
+                    .AddEnvironmentVariableDetector())
+                .AddSource("*")
+                //.AddMongoDBInstrumentation()
+                .AddAzureMonitorTraceExporter(o =>
+                {
+                    o.ConnectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+                })
+                .AddJaegerExporter(o =>
+                {
+                    o.AgentHost = "localhost";
+                    o.AgentPort = 6831;
+                    o.MaxPayloadSizeInBytes = 4096;
+                    o.ExportProcessorType = ExportProcessorType.Batch;
+                    o.BatchExportProcessorOptions = new BatchExportProcessorOptions<System.Diagnostics.Activity>
+                    {
+                        MaxQueueSize = 2048,
+                        ScheduledDelayMilliseconds = 5000,
+                        ExporterTimeoutMilliseconds = 30000,
+                        MaxExportBatchSize = 512,
+                    };
+                });
+        });
+
     })
     .ConfigureLogging((hostingContext, logging) =>
     {
@@ -55,10 +89,9 @@ Microsoft.Extensions.Hosting.IHost host = Host.CreateDefaultBuilder(args)
     .Build();
 
 await host.RunAsync();
-await TelemetryAndLogging.FlushAndCloseAsync();
+//await TelemetryAndLogging.FlushAndCloseAsync();
 
 Log.CloseAndFlush();
-
 
 
 static void ConfigureBus(IBusRegistrationContext context, IRabbitMqBusFactoryConfigurator configurator)

@@ -1,4 +1,5 @@
 using Genocs.MassTransit.Customers.WebApi;
+using Genocs.Monitoring;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Serilog;
 using Serilog.Events;
@@ -7,6 +8,7 @@ using Serilog.Events;
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .MinimumLevel.Override("MassTransit", LogEventLevel.Information)
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .CreateLogger();
@@ -19,10 +21,10 @@ builder.Host.UseSerilog((ctx, lc) => lc
 
 // ***********************************************
 // Azure Application Insight configuration - START
-builder.Services.AddApplicationInsightsTelemetry();
+builder.Services.AddCustomOpenTelemetry(builder.Configuration);
 
 var connectionString = builder.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
-TelemetryAndLogging.Initialize(connectionString);
+Genocs.Monitoring.TelemetryAndLogging.Initialize(connectionString);
 // Azure Application Insight configuration - END
 // ***********************************************
 
