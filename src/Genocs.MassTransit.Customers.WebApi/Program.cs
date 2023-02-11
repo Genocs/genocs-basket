@@ -74,9 +74,13 @@ services.Configure<HealthCheckPublisherOptions>(options =>
 //});
 string applicationInsightsConnectionString = builder.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
 
+
 // Set Custom Open telemetry
 services.AddOpenTelemetryTracing(builder =>
 {
+    builder.AddAspNetCoreInstrumentation();
+
+
     TracerProviderBuilder provider = builder.SetResourceBuilder(ResourceBuilder.CreateDefault()
             .AddService("CustomersWebApi")
             .AddTelemetrySdk()
@@ -84,26 +88,25 @@ services.AddOpenTelemetryTracing(builder =>
         .AddSource("*");
     //.AddMongoDBInstrumentation()
     provider.AddAzureMonitorTraceExporter(o =>
-    {
-        o.ConnectionString = applicationInsightsConnectionString;
-    });
+        {
+            o.ConnectionString = applicationInsightsConnectionString;
+        });
 
     provider.AddJaegerExporter(o =>
-    {
-        o.AgentHost = "localhost";
-        o.AgentPort = 6831;
-        o.MaxPayloadSizeInBytes = 4096;
-        o.ExportProcessorType = ExportProcessorType.Batch;
-        o.BatchExportProcessorOptions = new BatchExportProcessorOptions<System.Diagnostics.Activity>
         {
-            MaxQueueSize = 2048,
-            ScheduledDelayMilliseconds = 5000,
-            ExporterTimeoutMilliseconds = 30000,
-            MaxExportBatchSize = 512,
-        };
-    });
+            o.AgentHost = "localhost";
+            o.AgentPort = 6831;
+            o.MaxPayloadSizeInBytes = 4096;
+            o.ExportProcessorType = ExportProcessorType.Batch;
+            o.BatchExportProcessorOptions = new BatchExportProcessorOptions<System.Diagnostics.Activity>
+            {
+                MaxQueueSize = 2048,
+                ScheduledDelayMilliseconds = 5000,
+                ExporterTimeoutMilliseconds = 30000,
+                MaxExportBatchSize = 512,
+            };
+        });
 });
-
 
 var app = builder.Build();
 

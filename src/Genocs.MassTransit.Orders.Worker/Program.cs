@@ -82,12 +82,25 @@ IHost host = Host.CreateDefaultBuilder(args)
         // Set Custom Open telemetry
         services.AddOpenTelemetryTracing(builder =>
         {
+            // Remove comment below to enable tracing on console 
+            //builder.AddConsoleExporter();
+            builder.AddSource("*");
             TracerProviderBuilder provider = builder.SetResourceBuilder(ResourceBuilder.CreateDefault()
                     .AddService("OrdersWorker")
                     .AddTelemetrySdk()
-                    .AddEnvironmentVariableDetector())
-                .AddSource("*");
-            //.AddMongoDBInstrumentation()
+                    .AddEnvironmentVariableDetector());
+
+            // Note: Only called on .NET & .NET Core runtimes.
+            provider.AddHttpClientInstrumentation((options) =>
+                {
+                    options.FilterHttpRequestMessage = (httpRequestMessage) =>
+                    {
+                        // Example: Only collect telemetry about HTTP GET requests.
+                        return httpRequestMessage.Method.Equals(HttpMethod.Get);
+                    };
+                });
+
+            //provider.AddMongoDBInstrumentation();
             provider.AddAzureMonitorTraceExporter(o =>
                 {
                     o.ConnectionString = applicationInsightsConnectionString;
