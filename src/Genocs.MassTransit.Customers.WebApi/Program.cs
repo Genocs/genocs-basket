@@ -1,9 +1,6 @@
 using Azure.Monitor.OpenTelemetry.Exporter;
 using Genocs.MassTransit.Customers.WebApi;
-using Genocs.Monitoring;
-using MassTransit;
 using Microsoft.ApplicationInsights.Extensibility;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
@@ -42,10 +39,16 @@ var services = builder.Services;
 
 // ***********************************************
 // Azure Application Insight configuration - START
-services.AddCustomOpenTelemetry(builder.Configuration);
+//services.AddCustomOpenTelemetry(builder.Configuration);
 
-var connectionString = builder.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
-Genocs.Monitoring.TelemetryAndLogging.Initialize(connectionString);
+//services.ConfigureTelemetryModule<DependencyTrackingTelemetryModule>((module, o) =>
+//{
+//    module.IncludeDiagnosticSourceActivities.Add("MassTransit");
+//    TelemetryConfiguration configuration = TelemetryConfiguration.CreateDefault();
+//    configuration.ConnectionString = builder.Configuration.GetConnectionString("ApplicationInsights");
+//    configuration.TelemetryInitializers.Add(new HttpDependenciesParsingTelemetryInitializer());
+//    _telemetryClient = new TelemetryClient(configuration);
+//});
 // Azure Application Insight configuration - END
 // ***********************************************
 
@@ -69,7 +72,37 @@ services.Configure<HealthCheckPublisherOptions>(options =>
 //    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 //    options.JsonSerializerOptions.PropertyNamingPolicy = null;
 //});
+string applicationInsightsConnectionString = builder.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
 
+// Set Custom Open telemetry
+services.AddOpenTelemetryTracing(builder =>
+{
+    TracerProviderBuilder provider = builder.SetResourceBuilder(ResourceBuilder.CreateDefault()
+            .AddService("CustomersWebApi")
+            .AddTelemetrySdk()
+            .AddEnvironmentVariableDetector())
+        .AddSource("*");
+    //.AddMongoDBInstrumentation()
+    provider.AddAzureMonitorTraceExporter(o =>
+    {
+        o.ConnectionString = applicationInsightsConnectionString;
+    });
+
+    provider.AddJaegerExporter(o =>
+    {
+        o.AgentHost = "localhost";
+        o.AgentPort = 6831;
+        o.MaxPayloadSizeInBytes = 4096;
+        o.ExportProcessorType = ExportProcessorType.Batch;
+        o.BatchExportProcessorOptions = new BatchExportProcessorOptions<System.Diagnostics.Activity>
+        {
+            MaxQueueSize = 2048,
+            ScheduledDelayMilliseconds = 5000,
+            ExporterTimeoutMilliseconds = 30000,
+            MaxExportBatchSize = 512,
+        };
+    });
+});
 
 
 var app = builder.Build();
@@ -91,6 +124,6 @@ app.MapControllers();
 
 app.Run();
 
-await TelemetryAndLogging.FlushAndCloseAsync();
+//await TelemetryAndLogging.FlushAndCloseAsync();
 
 Log.CloseAndFlush();
