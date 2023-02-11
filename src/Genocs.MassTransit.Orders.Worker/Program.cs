@@ -41,7 +41,7 @@ IHost host = Host.CreateDefaultBuilder(args)
     })
     .ConfigureServices((hostContext, services) =>
     {
-        string applicationInsightsConnectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+        string? applicationInsightsConnectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
         //TelemetryAndLogging.Initialize(connectionString);
 
         // This is a state machine Activity

@@ -37,7 +37,7 @@ IHost host = Host.CreateDefaultBuilder(args)
     })
     .ConfigureServices((hostContext, services) =>
     {
-        string applicationInsightsConnectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+        string? applicationInsightsConnectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
         //TelemetryAndLogging.Initialize(connectionString);
 
         services.TryAddSingleton(KebabCaseEndpointNameFormatter.Instance);

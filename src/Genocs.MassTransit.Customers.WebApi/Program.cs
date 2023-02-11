@@ -72,7 +72,7 @@ services.Configure<HealthCheckPublisherOptions>(options =>
 //    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 //    options.JsonSerializerOptions.PropertyNamingPolicy = null;
 //});
-string applicationInsightsConnectionString = builder.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+string? applicationInsightsConnectionString = builder.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
 
 
 // Set Custom Open telemetry

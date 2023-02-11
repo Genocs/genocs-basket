@@ -91,7 +91,7 @@ services.AddMassTransit(x =>
 
 });
 
-string applicationInsightsConnectionString = builder.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+string? applicationInsightsConnectionString = builder.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
 
 // Set Custom Open telemetry
 services.AddOpenTelemetryTracing(builder =>
