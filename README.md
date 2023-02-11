@@ -1,7 +1,7 @@
 # genocs-basket
 A step by step basket system. 
 
-It use the awesome [MassTransit](https://masstransit-project.com/) library .NET6  
+It use the awesome [MassTransit](https://masstransit-project.com/) library .NET7
 
 
 ## Prerequisite
@@ -11,6 +11,8 @@ Following componants are used along with the others.
 - RabbitMQ
 - MongoDB
 - Redis
+- [Jaeger](https://www.jaegertracing.io/) for tracing.
+- [OpenTelemetry](https://opentelemetry.io/)
 
 To setup the infrastructure components as Docker container, a compose file is provided.
 

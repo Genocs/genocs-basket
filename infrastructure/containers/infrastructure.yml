@@ -1,7 +1,6 @@
-version: "3.8"
+version: "3.9"
 
 services:
-  
   mongo:
     image: mongo
     hostname: mongo_node_1
@@ -13,7 +12,6 @@ services:
     # network_mode: host
     volumes:
       - mongo:/var/lib/data/db
-
 
   rabbitmq:
     image: masstransit/rabbitmq # Used to handle delayed messages
@@ -32,7 +30,7 @@ services:
 
   redis:
     image: redis
-    hostname: redis_node_1    
+    hostname: redis_node_1
     container_name: redis
     ports:
       - 6379:6379
