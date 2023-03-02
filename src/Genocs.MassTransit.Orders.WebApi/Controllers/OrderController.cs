@@ -1,7 +1,7 @@
 using Genocs.MassTransit.Orders.Contracts;
 using MassTransit;
+using MassTransit.Logging;
 using Microsoft.AspNetCore.Mvc;
-using OpenTelemetry;
 using System.Diagnostics;
 
 namespace Genocs.MassTransit.Orders.WebApi.Controllers;
@@ -62,7 +62,8 @@ public class OrderController : ControllerBase
         // A span
         using var activity = source.StartActivity("Placeholder to call Service B");
 
-        Baggage.Current.SetBaggage("ExampleItem", "The information");
+        // Simple tag
+        activity?.AddTag("orderId", orderId);
 
 
         //Genocs.MassTransit.Contracts:OrderSubmitted

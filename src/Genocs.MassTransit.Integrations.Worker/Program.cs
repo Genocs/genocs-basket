@@ -36,15 +36,17 @@ IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((hostContext, services) =>
     {
         string? applicationInsightsConnectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
-        //TelemetryAndLogging.Initialize(connectionString);
+
 
         services.TryAddSingleton(KebabCaseEndpointNameFormatter.Instance);
 
         services.AddHostedService<ConsoleHostedService>();
 
         // Set Custom Open telemetry
-        services.AddOpenTelemetryTracing(builder =>
+        services.AddOpenTelemetry().WithTracing(builder =>
         {
+            // Remove comment below to enable tracing on console 
+            //builder.AddConsoleExporter();
             TracerProviderBuilder provider = builder.SetResourceBuilder(ResourceBuilder.CreateDefault()
                     .AddService("IntegrationsWorker")
                     .AddTelemetrySdk()
@@ -52,25 +54,26 @@ IHost host = Host.CreateDefaultBuilder(args)
                 .AddSource("*");
             //.AddMongoDBInstrumentation()
             provider.AddAzureMonitorTraceExporter(o =>
-            {
-                o.ConnectionString = applicationInsightsConnectionString;
-            });
+                {
+                    o.ConnectionString = applicationInsightsConnectionString;
+                });
 
             provider.AddJaegerExporter(o =>
-            {
-                o.AgentHost = "localhost";
-                o.AgentPort = 6831;
-                o.MaxPayloadSizeInBytes = 4096;
-                o.ExportProcessorType = ExportProcessorType.Batch;
-                o.BatchExportProcessorOptions = new BatchExportProcessorOptions<System.Diagnostics.Activity>
                 {
-                    MaxQueueSize = 2048,
-                    ScheduledDelayMilliseconds = 5000,
-                    ExporterTimeoutMilliseconds = 30000,
-                    MaxExportBatchSize = 512,
-                };
-            });
+                    o.AgentHost = "localhost";
+                    o.AgentPort = 6831;
+                    o.MaxPayloadSizeInBytes = 4096;
+                    o.ExportProcessorType = ExportProcessorType.Batch;
+                    o.BatchExportProcessorOptions = new BatchExportProcessorOptions<System.Diagnostics.Activity>
+                    {
+                        MaxQueueSize = 2048,
+                        ScheduledDelayMilliseconds = 5000,
+                        ExporterTimeoutMilliseconds = 30000,
+                        MaxExportBatchSize = 512,
+                    };
+                });
         });
+
     })
     .ConfigureLogging((hostingContext, logging) =>
     {
@@ -80,7 +83,5 @@ IHost host = Host.CreateDefaultBuilder(args)
     .Build();
 
 await host.RunAsync();
-
-await TelemetryAndLogging.FlushAndCloseAsync();
 
 Log.CloseAndFlush();

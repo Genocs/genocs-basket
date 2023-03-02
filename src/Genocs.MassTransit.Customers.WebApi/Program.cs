@@ -19,12 +19,13 @@ Log.Logger = new LoggerConfiguration()
 
 var builder = WebApplication.CreateBuilder(args);
 
+string? applicationInsightsConnectionString = builder.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+
 builder.Host.UseSerilog((ctx, lc) =>
 {
     lc.WriteTo.Console();
 
     // Check for Azure ApplicationInsights 
-    string? applicationInsightsConnectionString = ctx.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
     if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
     {
         lc.WriteTo.ApplicationInsights(new TelemetryConfiguration
@@ -37,22 +38,6 @@ builder.Host.UseSerilog((ctx, lc) =>
 // add services to DI container
 var services = builder.Services;
 
-// ***********************************************
-// Azure Application Insight configuration - START
-//services.AddCustomOpenTelemetry(builder.Configuration);
-
-//services.ConfigureTelemetryModule<DependencyTrackingTelemetryModule>((module, o) =>
-//{
-//    module.IncludeDiagnosticSourceActivities.Add("MassTransit");
-//    TelemetryConfiguration configuration = TelemetryConfiguration.CreateDefault();
-//    configuration.ConnectionString = builder.Configuration.GetConnectionString("ApplicationInsights");
-//    configuration.TelemetryInitializers.Add(new HttpDependenciesParsingTelemetryInitializer());
-//    _telemetryClient = new TelemetryClient(configuration);
-//});
-// Azure Application Insight configuration - END
-// ***********************************************
-
-
 
 services.AddControllers();
 
@@ -64,7 +49,6 @@ services.Configure<HealthCheckPublisherOptions>(options =>
 {
     options.Delay = TimeSpan.FromSeconds(2);
     options.Predicate = check => check.Tags.Contains("ready");
-
 });
 
 //builder.Services.Configure<JsonOptions>(options =>
@@ -72,15 +56,12 @@ services.Configure<HealthCheckPublisherOptions>(options =>
 //    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 //    options.JsonSerializerOptions.PropertyNamingPolicy = null;
 //});
-string? applicationInsightsConnectionString = builder.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+
 
 
 // Set Custom Open telemetry
-services.AddOpenTelemetryTracing(builder =>
+services.AddOpenTelemetry().WithTracing(builder =>
 {
-    builder.AddAspNetCoreInstrumentation();
-
-
     TracerProviderBuilder provider = builder.SetResourceBuilder(ResourceBuilder.CreateDefault()
             .AddService("CustomersWebApi")
             .AddTelemetrySdk()
@@ -126,7 +107,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-
-//await TelemetryAndLogging.FlushAndCloseAsync();
 
 Log.CloseAndFlush();

@@ -11,6 +11,7 @@ using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 
+
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
@@ -18,7 +19,6 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .CreateLogger();
-
 
 IHost host = Host.CreateDefaultBuilder(args)
     .UseSerilog((ctx, lc) =>
@@ -68,7 +68,7 @@ IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<MassTransitConsoleHostedService>();
 
         // Set Custom Open telemetry
-        services.AddOpenTelemetryTracing(builder =>
+        services.AddOpenTelemetry().WithTracing(builder =>
         {
             TracerProviderBuilder provider = builder.SetResourceBuilder(ResourceBuilder.CreateDefault()
                     .AddService("InventoriesWorker")
@@ -106,7 +106,6 @@ IHost host = Host.CreateDefaultBuilder(args)
     .Build();
 
 await host.RunAsync();
-//await TelemetryAndLogging.FlushAndCloseAsync();
 
 Log.CloseAndFlush();
 

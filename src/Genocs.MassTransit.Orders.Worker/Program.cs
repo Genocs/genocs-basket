@@ -15,6 +15,7 @@ using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 
+
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
@@ -22,7 +23,6 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .CreateLogger();
-
 
 IHost host = Host.CreateDefaultBuilder(args)
     .UseSerilog((ctx, lc) =>
@@ -79,7 +79,7 @@ IHost host = Host.CreateDefaultBuilder(args)
         services.AddHttpClient<CustomerClient>();
 
         // Set Custom Open telemetry
-        services.AddOpenTelemetryTracing(builder =>
+        services.AddOpenTelemetry().WithTracing(builder =>
         {
             // Remove comment below to enable tracing on console 
             //builder.AddConsoleExporter();
@@ -90,27 +90,24 @@ IHost host = Host.CreateDefaultBuilder(args)
                 .AddSource("*");
             //.AddMongoDBInstrumentation()
             provider.AddAzureMonitorTraceExporter(o =>
-            {
-                o.ConnectionString = applicationInsightsConnectionString;
-            });
+                {
+                    o.ConnectionString = applicationInsightsConnectionString;
+                });
 
             provider.AddJaegerExporter(o =>
-            {
-                o.AgentHost = "localhost";
-                o.AgentPort = 6831;
-                o.MaxPayloadSizeInBytes = 4096;
-                o.ExportProcessorType = ExportProcessorType.Batch;
-                o.BatchExportProcessorOptions = new BatchExportProcessorOptions<System.Diagnostics.Activity>
                 {
-                    MaxQueueSize = 2048,
-                    ScheduledDelayMilliseconds = 5000,
-                    ExporterTimeoutMilliseconds = 30000,
-                    MaxExportBatchSize = 512,
-                };
-            });
-
-
-
+                    o.AgentHost = "localhost";
+                    o.AgentPort = 6831;
+                    o.MaxPayloadSizeInBytes = 4096;
+                    o.ExportProcessorType = ExportProcessorType.Batch;
+                    o.BatchExportProcessorOptions = new BatchExportProcessorOptions<System.Diagnostics.Activity>
+                    {
+                        MaxQueueSize = 2048,
+                        ScheduledDelayMilliseconds = 5000,
+                        ExporterTimeoutMilliseconds = 30000,
+                        MaxExportBatchSize = 512,
+                    };
+                });
         });
 
     })
