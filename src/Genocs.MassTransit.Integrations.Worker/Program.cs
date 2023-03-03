@@ -1,6 +1,7 @@
 using Azure.Monitor.OpenTelemetry.Exporter;
 using Genocs.MassTransit.Integrations.Worker;
-using MassTransit;
+using Genocs.MassTransit.Integrations.Worker.Options;
+using MassTransit.Definition;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenTelemetry;
@@ -17,6 +18,7 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .CreateLogger();
+
 
 IHost host = Host.CreateDefaultBuilder(args)
     .UseSerilog((ctx, lc) =>
@@ -35,8 +37,13 @@ IHost host = Host.CreateDefaultBuilder(args)
     })
     .ConfigureServices((hostContext, services) =>
     {
+        // Read Settings
         string? applicationInsightsConnectionString = hostContext.Configuration.GetConnectionString(Constants.ApplicationInsightsConnectionString);
+        string serviceName = hostContext.Configuration.GetValue(typeof(string), Constants.ServiceName) as string ?? "IntegrationsWorker";
 
+        MonitoringSettings settings = new MonitoringSettings();
+        hostContext.Configuration.Bind(MonitoringSettings.Position, settings);
+        services.AddSingleton(settings);
 
         services.TryAddSingleton(KebabCaseEndpointNameFormatter.Instance);
 
@@ -45,22 +52,33 @@ IHost host = Host.CreateDefaultBuilder(args)
         // Set Custom Open telemetry
         services.AddOpenTelemetry().WithTracing(builder =>
         {
-            // Remove comment below to enable tracing on console 
-            //builder.AddConsoleExporter();
             TracerProviderBuilder provider = builder.SetResourceBuilder(ResourceBuilder.CreateDefault()
-                    .AddService("IntegrationsWorker")
+                    .AddService(serviceName)
                     .AddTelemetrySdk()
                     .AddEnvironmentVariableDetector())
                 .AddSource("*");
-            //.AddMongoDBInstrumentation()
-            provider.AddAzureMonitorTraceExporter(o =>
-                {
-                    o.ConnectionString = applicationInsightsConnectionString;
-                });
+
+            // Remove comment below to enable tracing on console
+            // you should add MongoDB.Driver.Core.Extensions.OpenTelemetry nuget package
+            provider.AddMongoDBInstrumentation();
+
+            // Remove comment below to enable tracing on console
+            // you should add OpenTelemetry.Exporter.Console nuget package
+            provider.AddConsoleExporter();
+
+
+            // Check for Azure ApplicationInsights 
+            if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
+            {
+                provider.AddAzureMonitorTraceExporter(o =>
+                    {
+                        o.ConnectionString = applicationInsightsConnectionString;
+                    });
+            }
 
             provider.AddJaegerExporter(o =>
                 {
-                    o.AgentHost = "localhost";
+                    o.AgentHost = settings.Jaeger;
                     o.AgentPort = 6831;
                     o.MaxPayloadSizeInBytes = 4096;
                     o.ExportProcessorType = ExportProcessorType.Batch;
